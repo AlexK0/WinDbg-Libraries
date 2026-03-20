@@ -3267,7 +3267,7 @@ namespace Details
         ObjectIterator(_In_ ObjectIterator&& rhs) :
             m_obj(std::move(rhs.m_obj)),
             m_spIterator(std::move(rhs.m_spIterator)),
-            m_value(std::move(rhs.m_spValue)),
+            m_value(std::move(rhs.m_value)),
             m_pos(rhs.m_pos)
         {
             rhs.m_pos = 0;
@@ -3426,7 +3426,7 @@ namespace Details
         static void Fill(_In_ TBase *pBase, _In_ TStr&& keyName, _In_ TArg&& value, _In_ TArgs&&... remainingInitializers)
         {
             const wchar_t *pStr = ExtractString(keyName);
-            Object obj = BoxObject(std::forward<TArg>(value));
+            auto obj = BoxObject(std::forward<TArg>(value));
             CheckHr(pBase->SetKey(pStr, obj, nullptr));
             KeyFiller<TBase, TArgs...>::Fill(pBase, std::forward<TArgs>(remainingInitializers)...);
         }
@@ -3440,7 +3440,7 @@ namespace Details
                          _In_ TArgs&&... remainingInitializers)
         {
             const wchar_t *pStr = ExtractString(keyName);
-            Object obj = BoxObject(std::forward<TArg>(value));
+            auto obj = BoxObject(std::forward<TArg>(value));
             CheckHr(pBase->SetKey(pStr, obj, metadata));
             KeyFiller<TBase, TArgs...>::Fill(pBase, std::forward<TArgs>(remainingInitializers)...);
         }
@@ -3604,13 +3604,7 @@ namespace Details
     // Packs a tuple of arguments into an allocated array of objects and returns it.
     //
     template<typename TTuple>
-    ParameterPack PackTuple(const TTuple& tuple)
-    {
-        constexpr size_t packSize = std::tuple_size_v<TTuple>;
-        std::unique_ptr<Object[]> argPack(new Object[packSize]);
-        TuplePacker<0, packSize, TTuple>::PackInto(argPack, tuple);
-        return argPack;
-    }
+    ParameterPack PackTuple(const TTuple& tuple);
 
 } // Details
 
@@ -9284,13 +9278,13 @@ namespace Details
     //
     // Support for detecting whether a given registration record for a TypedInstanceModel is valid or not
     //
-    template<typename TReg> 
+    template<typename TReg>
     struct IsValidTypedInstanceRegistrationType : std::false_type { };
 
-    template<> 
+    template<>
     struct IsValidTypedInstanceRegistrationType<NamedModelRegistration> : std::true_type { };
 
-    template<typename TReg> constexpr bool IsValidTypedInstanceRegistrationType_v = 
+    template<typename TReg> constexpr bool IsValidTypedInstanceRegistrationType_v =
         IsValidTypedInstanceRegistrationType<TReg>::value;
 
     template<typename TReg>
@@ -9298,7 +9292,7 @@ namespace Details
     {
         static void Verify()
         {
-            static_assert(IsValidTypedInstanceRegistrationType_v<TReg>, 
+            static_assert(IsValidTypedInstanceRegistrationType_v<TReg>,
                           "Illegal registration kind for a TypedInstanceModel<T>");
         }
     };
@@ -11097,6 +11091,23 @@ void IterableTypedInstanceModel<TInstance>::BindIterator(_In_ const TItemProject
 }
 
 }; // ProviderEx
+
+namespace ClientEx {
+
+namespace Details {
+
+    template<typename TTuple>
+    ParameterPack PackTuple(const TTuple& tuple)
+    {
+        constexpr size_t packSize = std::tuple_size_v<TTuple>;
+        std::unique_ptr<Object[]> argPack(new Object[packSize]);
+        TuplePacker<0, packSize, TTuple>::PackInto(argPack, tuple);
+        return argPack;
+    }
+
+} // namespace ClientEx
+
+} // Details
 
 } // DataModel
 } // Debugger
